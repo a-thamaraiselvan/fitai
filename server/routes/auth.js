@@ -64,7 +64,7 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Determine if this is the admin user
-    const isAdmin = email === 'admin@gmail.com';
+    const isAdmin = email === 'athamaraiselvan694@gmail.com';
     const role = isAdmin ? 'admin' : 'user';
     const isApproved = isAdmin; // Admin is auto-approved
 
@@ -116,7 +116,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Check if user is approved (except for admin)
-    if (email !== 'admin@gmail.com' && !user.is_approved) {
+    if (email !== 'athamaraiselvan694@gmail.com' && !user.is_approved) {
       return res.status(403).json({ message: 'Account pending approval. Please wait for admin approval.' });
     }
 

@@ -26,7 +26,7 @@ const authenticateToken = async (req, res, next) => {
     const user = rows[0];
 
     // Check if user is approved (except for admin)
-    if (user.email !== 'admin@gmail.com' && !user.is_approved) {
+    if (user.email !== 'athamaraiselvan694@gmail.com' && !user.is_approved) {
       return res.status(403).json({ message: 'Account not approved' });
     }
 
