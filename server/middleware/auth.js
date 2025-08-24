@@ -30,17 +30,18 @@ const authenticateToken = async (req, res, next) => {
       return res.status(403).json({ message: 'Account not approved' });
     }
 
-    req.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      profilePicture: user.profile_picture,
-      height: user.height,
-      weight: user.weight,
-      fitnessGoals: user.fitness_goals,
-      role: user.role,
-      isApproved: user.is_approved
-    };
+req.user = {
+  id: user.id,
+  email: user.email,
+  name: user.name || null,
+  profilePicture: user.profile_picture || null,
+  height: user.height || null,
+  weight: user.weight || null,
+  fitnessGoals: user.fitness_goals || null,
+  role: user.role,
+  isApproved: user.is_approved
+};
+
 
     next();
   } catch (error) {

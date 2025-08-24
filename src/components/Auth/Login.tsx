@@ -88,7 +88,7 @@ const Login: React.FC = () => {
         </div>
 
         <div className="text-center text-sm text-gray-500">
-          <p>Admin Access: admin@gmail.com / Admin@694</p>
+          <p>Design and Developed By <a href='https://thamaraiselvan.novacodex.in/'>Thamaraiselvan</a></p>
         </div>
       </div>
     </div>

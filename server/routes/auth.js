@@ -156,21 +156,47 @@ router.get('/me', authenticateToken, (req, res) => {
 // Update profile
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
+    console.log('PUT /profile called');
+    console.log('req.user:', req.user);
+    console.log('req.body:', req.body);
+
     const { name, height, weight, fitnessGoals } = req.body;
     const userId = req.user.id;
 
     const db = getConnection();
+    console.log('DB connection:', !!db);
 
+    // Get current user values to prevent null overwrites
+    const [currentRows] = await db.execute(
+      'SELECT name, height, weight, fitness_goals FROM users WHERE id = ?',
+      [userId]
+    );
+    if (!currentRows || currentRows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const currentUser = currentRows[0];
+
+    // Update user with provided values or keep existing ones
     await db.execute(
       'UPDATE users SET name = ?, height = ?, weight = ?, fitness_goals = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [name, height, weight, fitnessGoals, userId]
+      [
+        name ?? currentUser.name,
+        height ?? currentUser.height,
+        weight ?? currentUser.weight,
+        fitnessGoals ?? currentUser.fitness_goals,
+        userId
+      ]
     );
 
-    // Get updated user data
     const [rows] = await db.execute(
       'SELECT id, email, name, profile_picture, height, weight, fitness_goals, role, is_approved FROM users WHERE id = ?',
       [userId]
     );
+    console.log('DB rows:', rows);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     const user = rows[0];
     res.json({
@@ -189,9 +215,10 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Profile update error:', error);
-    res.status(500).json({ message: 'Profile update failed' });
+    res.status(500).json({ message: 'Profile update failed', details: error.message });
   }
 });
+
 
 // Upload profile picture
 router.post('/upload-profile-picture', authenticateToken, upload.single('profilePicture'), async (req, res) => {

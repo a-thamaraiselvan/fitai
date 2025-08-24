@@ -41,6 +41,29 @@ export const useAuth = () => {
   return context;
 };
 
+// MOVE normalizeUser HERE — outside AuthProvider
+const normalizeUser = (user: User): User | undefined => {
+  if (!user) return undefined;
+
+  const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:3001';
+
+  let profilePictureUrl: string | undefined;
+
+  if (user.profilePicture) {
+    profilePictureUrl = user.profilePicture.startsWith('http')
+      ? user.profilePicture
+      : `${baseUrl}${user.profilePicture.startsWith('/') ? '' : '/'}${user.profilePicture}`;
+  }
+
+  return {
+    ...user,
+    profilePicture: profilePictureUrl,
+  };
+};
+
+
+
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchUser = async () => {
     try {
       const response = await api.get('/auth/me');
-      setUser(response.data.user);
+      setUser(normalizeUser(response.data.user));
     } catch (error) {
       localStorage.removeItem('token');
       delete api.defaults.headers.common['Authorization'];
@@ -70,10 +93,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     const response = await api.post('/auth/login', { email, password });
     const { token, user: userData } = response.data;
-    
     localStorage.setItem('token', token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    setUser(userData);
+    setUser(normalizeUser(userData));
   };
 
   const register = async (userData: RegisterData) => {
@@ -88,7 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateProfile = async (userData: Partial<User>) => {
     const response = await api.put('/auth/profile', userData);
-    setUser(response.data.user);
+    setUser(normalizeUser(response.data.user));
   };
 
   const value = {

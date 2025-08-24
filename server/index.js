@@ -17,7 +17,7 @@ const app = express();
 app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] 
+    ? ['https://fitai.novacodex.in'] 
     : ['http://localhost:5173'],
   credentials: true
 }));
