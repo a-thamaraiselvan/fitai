@@ -1,0 +1,40 @@
+{
+  "name": "fitai-backend",
+  "version": "1.0.0",
+  "description": "Backend API for FitAI - AI-Powered Fitness & Diet Tracker",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "init-db": "node scripts/init-database.js"
+  },
+  "keywords": [
+    "fitness",
+    "diet",
+    "ai",
+    "tracker",
+    "health"
+  ],
+  "author": "FitAI Team",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.11.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^6.11.2",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.14.3"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.1",
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
