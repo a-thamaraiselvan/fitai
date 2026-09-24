@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Get nutrition chart data
-router.get('/nutrition', authenticateToken, async (req, res) => {
+router.get('/GetNutritionChartData', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const today = new Date().toISOString().split('T')[0];
@@ -22,9 +22,9 @@ router.get('/nutrition', authenticateToken, async (req, res) => {
 
     const data = rows[0];
     const chartData = [
-      { name: 'Protein', value: data.protein, color: '#10B981' },
-      { name: 'Carbs', value: data.carbs, color: '#F59E0B' },
-      { name: 'Fat', value: data.fat, color: '#EF4444' }
+      { name: 'Protein', value: Number(data.protein) || 0, color: '#10B981' },
+      { name: 'Carbs', value: Number(data.carbs) || 0, color: '#F59E0B' },
+      { name: 'Fat', value: Number(data.fat) || 0, color: '#EF4444' }
     ];
 
     res.json(chartData);
@@ -35,7 +35,7 @@ router.get('/nutrition', authenticateToken, async (req, res) => {
 });
 
 // Get weekly progress data
-router.get('/weekly', authenticateToken, async (req, res) => {
+router.get('/GetWeeklyProgressChartData', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -74,9 +74,9 @@ router.get('/weekly', authenticateToken, async (req, res) => {
 
       weeklyData.push({
         day: dayName,
-        calories: caloriesResult[0].calories,
-        workouts: workoutsResult[0].workouts,
-        water: Math.round(waterResult[0].water * 10) / 10 // Round to 1 decimal
+        calories: Number(caloriesResult[0].calories) || 0,
+        workouts: Number(workoutsResult[0].workouts) || 0,
+        water: Math.round((Number(waterResult[0].water) || 0) * 10) / 10 // Round to 1 decimal
       });
     }
 
@@ -88,7 +88,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
 });
 
 // Get gym statistics
-router.get('/gym-stats', authenticateToken, async (req, res) => {
+router.get('/GetGymStatisticsChartData', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const currentMonth = new Date().getMonth() + 1;
@@ -115,13 +115,13 @@ router.get('/gym-stats', authenticateToken, async (req, res) => {
     rows.forEach(row => {
       switch (row.status) {
         case 'gym':
-          gymData[0].value = row.count;
+          gymData[0].value = Number(row.count) || 0;
           break;
         case 'rest':
-          gymData[1].value = row.count;
+          gymData[1].value = Number(row.count) || 0;
           break;
         case 'missed':
-          gymData[2].value = row.count;
+          gymData[2].value = Number(row.count) || 0;
           break;
       }
     });

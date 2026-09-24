@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Get today's diet entries
-router.get('/entries/today', authenticateToken, async (req, res) => {
+router.get('/GetTodayDietEntries', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const today = new Date().toISOString().split('T')[0];
@@ -24,7 +24,7 @@ router.get('/entries/today', authenticateToken, async (req, res) => {
 });
 
 // Add diet entry
-router.post('/entries', authenticateToken, async (req, res) => {
+router.post('/AddDietEntry', authenticateToken, async (req, res) => {
   try {
     const { foodName, calories, protein, carbs, fat, quantity, mealType } = req.body;
     const userId = req.user.id;
@@ -51,7 +51,7 @@ router.post('/entries', authenticateToken, async (req, res) => {
 });
 
 // Get diet entries for date range
-router.get('/entries', authenticateToken, async (req, res) => {
+router.get('/GetDietEntriesByDateRange', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { startDate, endDate } = req.query;
@@ -77,7 +77,7 @@ router.get('/entries', authenticateToken, async (req, res) => {
 });
 
 // Delete diet entry
-router.delete('/entries/:id', authenticateToken, async (req, res) => {
+router.delete('/DeleteDietEntry/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const entryId = req.params.id;

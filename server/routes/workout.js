@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Get today's workout entries
-router.get('/entries/today', authenticateToken, async (req, res) => {
+router.get('/GetTodayWorkoutEntries', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const today = new Date().toISOString().split('T')[0];
@@ -24,7 +24,7 @@ router.get('/entries/today', authenticateToken, async (req, res) => {
 });
 
 // Add workout exercise
-router.post('/exercises', authenticateToken, async (req, res) => {
+router.post('/AddWorkoutExercise', authenticateToken, async (req, res) => {
   try {
     const { exerciseName, sets, reps, weight, duration, workoutType } = req.body;
     const userId = req.user.id;
@@ -51,7 +51,7 @@ router.post('/exercises', authenticateToken, async (req, res) => {
 });
 
 // Save workout session
-router.post('/sessions', authenticateToken, async (req, res) => {
+router.post('/SaveWorkoutSession', authenticateToken, async (req, res) => {
   try {
     const { name, startTime, duration } = req.body;
     const userId = req.user.id;
@@ -60,7 +60,7 @@ router.post('/sessions', authenticateToken, async (req, res) => {
     const db = getConnection();
     const [result] = await db.execute(
       'INSERT INTO workout_sessions (user_id, name, start_time, duration, date) VALUES (?, ?, ?, ?, ?)',
-      [userId, name, startTime, duration, today]
+      [userId, name, new Date(startTime), duration, today]
     );
 
     res.status(201).json({ id: result.insertId, message: 'Workout session saved successfully' });
@@ -71,7 +71,7 @@ router.post('/sessions', authenticateToken, async (req, res) => {
 });
 
 // Get workout entries for date range
-router.get('/entries', authenticateToken, async (req, res) => {
+router.get('/GetWorkoutEntriesByDateRange', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { startDate, endDate } = req.query;
@@ -97,7 +97,7 @@ router.get('/entries', authenticateToken, async (req, res) => {
 });
 
 // Get workout sessions
-router.get('/sessions', authenticateToken, async (req, res) => {
+router.get('/GetWorkoutSessions', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { startDate, endDate } = req.query;
@@ -123,7 +123,7 @@ router.get('/sessions', authenticateToken, async (req, res) => {
 });
 
 // Delete workout entry
-router.delete('/entries/:id', authenticateToken, async (req, res) => {
+router.delete('/DeleteWorkoutEntry/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const entryId = req.params.id;

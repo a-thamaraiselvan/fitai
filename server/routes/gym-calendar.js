@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Get gym days for a specific month
-router.get('/month/:year/:month', authenticateToken, async (req, res) => {
+router.get('/GetGymDaysByMonth/:year/:month', authenticateToken, async (req, res) => {
   try {
     const { year, month } = req.params;
     const userId = req.user.id;
@@ -24,7 +24,7 @@ router.get('/month/:year/:month', authenticateToken, async (req, res) => {
 });
 
 // Update gym day status
-router.post('/update', authenticateToken, async (req, res) => {
+router.post('/UpdateGymDayStatus', authenticateToken, async (req, res) => {
   try {
     const { date, status, reason } = req.body;
     const userId = req.user.id;
@@ -63,7 +63,7 @@ router.post('/update', authenticateToken, async (req, res) => {
 });
 
 // Get gym statistics
-router.get('/stats', authenticateToken, async (req, res) => {
+router.get('/GetGymCalendarStats', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { year, month } = req.query;

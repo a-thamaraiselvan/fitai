@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Auth/Login';
@@ -16,45 +16,43 @@ import AdminPanel from './components/Admin/AdminPanel';
 import BottomNavigation from './components/Layout/BottomNavigation';
 import LoadingSpinner from './components/UI/LoadingSpinner';
 import AINotifications from './components/AI/AINotifications';
+import ResetFirstPassword from './components/Auth/ResetFirstPassword';
+
+import PrivateRoute from './components/Auth/PrivateRoute';
+import PublicRoute from './components/Auth/PublicRoute';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const location = useLocation();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </div>
-    );
-  }
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/resetPassword';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-16">
-      <AINotifications />
+    <div className={`min-h-screen bg-ios-bg ${!isAuthPage ? 'pb-24' : ''}`}>
+      {!isAuthPage && user && <AINotifications />}
       <Routes>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/diet" element={<DietTracker />} />
-        <Route path="/meal-analyzer" element={<MealAnalyzer />} />
-        <Route path="/workout" element={<WorkoutTracker />} />
-        <Route path="/gym-calendar" element={<GymCalendar />} />
-        <Route path="/water" element={<WaterTracker />} />
-        <Route path="/charts" element={<ProgressCharts />} />
-        <Route path="/profile" element={<Profile />} />
-        {user.role === 'admin' && (
-          <Route path="/admin" element={<AdminPanel />} />
-        )}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/resetPassword" element={<PublicRoute><ResetFirstPassword /></PublicRoute>} />
+        
+        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/diet" element={<PrivateRoute><DietTracker /></PrivateRoute>} />
+        <Route path="/meal-analyzer" element={<PrivateRoute><MealAnalyzer /></PrivateRoute>} />
+        <Route path="/workout" element={<PrivateRoute><WorkoutTracker /></PrivateRoute>} />
+        <Route path="/gym-calendar" element={<PrivateRoute><GymCalendar /></PrivateRoute>} />
+        <Route path="/water" element={<PrivateRoute><WaterTracker /></PrivateRoute>} />
+        <Route path="/charts" element={<PrivateRoute><ProgressCharts /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/admin" element={<PrivateRoute>{user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/dashboard" replace />}</PrivateRoute>} />
+        
+        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
-      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      {!isAuthPage && user && <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />}
     </div>
   );
 };
@@ -66,11 +64,19 @@ function App() {
         <Toaster 
           position="top-center"
           toastOptions={{
-            duration: 3000,
+            duration: 2500,
             style: {
-              background: '#363636',
+              background: 'rgba(50, 50, 50, 0.92)',
               color: '#fff',
-              borderRadius: '12px',
+              borderRadius: '14px',
+              fontSize: '15px',
+              fontWeight: '500',
+              padding: '12px 20px',
+              fontFamily: '"SF Pro Text", -apple-system, sans-serif',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              maxWidth: '340px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
             },
           }}
         />

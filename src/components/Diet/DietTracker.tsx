@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Apple, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Apple, X } from 'lucide-react';
+import { Select } from 'antd';
 import Button from '../UI/Button';
 import Input from '../UI/Input';
 import api from '../../services/api';
@@ -37,8 +38,13 @@ const DietTracker: React.FC = () => {
 
   const fetchTodaysFoodEntries = async () => {
     try {
-      const response = await api.get('/diet/entries/today');
-      setFoodEntries(response.data);
+      const response = await api.get('/Diet/GetTodayDietEntries');
+      const formattedEntries = response.data.map((entry: any) => ({
+        ...entry,
+        foodName: entry.food_name || entry.foodName,
+        mealType: entry.meal_type || entry.mealType
+      }));
+      setFoodEntries(formattedEntries);
     } catch (error) {
       console.error('Failed to fetch food entries:', error);
     }
@@ -58,7 +64,7 @@ const DietTracker: React.FC = () => {
         quantity: parseInt(newEntry.quantity),
       };
 
-      await api.post('/diet/entries', entryData);
+      await api.post('/Diet/AddDietEntry', entryData);
       await fetchTodaysFoodEntries();
       setNewEntry({
         foodName: '',
@@ -95,83 +101,76 @@ const DietTracker: React.FC = () => {
 
   const totalNutrition = getTotalNutrition();
 
-  const NutritionCard: React.FC<{
-    title: string;
-    value: number;
-    unit: string;
-    color: string;
-    target?: number;
-  }> = ({ title, value, unit, color, target }) => (
-    <div className="bg-white rounded-xl shadow-sm p-4 border-l-4" style={{ borderLeftColor: color }}>
-      <p className="text-sm text-gray-600 font-medium">{title}</p>
-      <p className="text-2xl font-bold text-gray-900">{value}<span className="text-sm font-normal text-gray-500">{unit}</span></p>
+  const NutritionPill: React.FC<{ label: string; value: number; unit: string; color: string; target?: number }> = 
+    ({ label, value, unit, color, target }) => (
+    <div className="ios-card p-3.5 text-center">
+      <p className="text-[11px] font-medium text-ios-gray1 uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-[20px] font-bold text-gray-900">{value}<span className="text-[12px] font-normal text-ios-gray2 ml-0.5">{unit}</span></p>
       {target && (
         <div className="mt-2">
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
+          <div className="w-full bg-ios-gray5 rounded-full h-1">
             <div 
-              className="h-1.5 rounded-full transition-all duration-500"
-              style={{ 
-                backgroundColor: color,
-                width: `${Math.min((value / target) * 100, 100)}%`
-              }}
-            ></div>
+              className="h-1 rounded-full transition-all duration-500"
+              style={{ backgroundColor: color, width: `${Math.min((value / target) * 100, 100)}%` }}
+            />
           </div>
-          <p className="text-xs text-gray-500 mt-1">{Math.round((value / target) * 100)}% of target</p>
         </div>
       )}
     </div>
   );
 
   const MealSection: React.FC<{ mealType: string; entries: FoodEntry[] }> = ({ mealType, entries }) => (
-    <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4 capitalize">{mealType}</h3>
-      {entries.length > 0 ? (
-        <div className="space-y-3">
-          {entries.map((entry) => (
-            <div key={entry.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-              <div>
-                <p className="font-medium text-gray-900">{entry.foodName}</p>
-                <p className="text-sm text-gray-600">
-                  {entry.quantity} serving • {entry.calories * entry.quantity} kcal
+    <div className="mb-4">
+      <h3 className="ios-headline text-gray-900 mb-2 ml-1 capitalize">{mealType}</h3>
+      <div className="ios-section">
+        {entries.length > 0 ? (
+          entries.map((entry, index) => (
+            <React.Fragment key={entry.id}>
+              {index > 0 && <div className="ios-separator" />}
+              <div className="flex justify-between items-center px-4 py-3">
+                <div>
+                  <p className="text-[15px] font-medium text-gray-900">{entry.foodName}</p>
+                  <p className="text-[13px] text-ios-gray1">
+                    {entry.quantity} serving · {entry.calories * entry.quantity} kcal
+                  </p>
+                </div>
+                <p className="text-[12px] text-ios-gray2 text-right">
+                  P:{entry.protein * entry.quantity}g · C:{entry.carbs * entry.quantity}g · F:{entry.fat * entry.quantity}g
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">
-                  P: {entry.protein * entry.quantity}g • C: {entry.carbs * entry.quantity}g • F: {entry.fat * entry.quantity}g
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-gray-500 text-center py-4">No entries for {mealType}</p>
-      )}
+            </React.Fragment>
+          ))
+        ) : (
+          <p className="text-ios-gray2 text-center py-5 text-[14px]">No entries for {mealType}</p>
+        )}
+      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-20">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-ios-bg px-4 pt-14 pb-24">
+      <div className="max-w-lg mx-auto ios-animate-fade-in">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-start mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Diet Tracker</h1>
-            <p className="text-gray-600">Track your daily nutrition intake</p>
+            <h1 className="ios-large-title text-gray-900">Diet</h1>
+            <p className="text-[15px] text-ios-gray1 mt-1">Track your daily nutrition</p>
           </div>
           <Button 
             onClick={() => setShowAddForm(!showAddForm)}
-            icon={Plus}
-            className="shrink-0"
+            icon={showAddForm ? X : Plus}
+            size="sm"
           >
-            Add Food
+            {showAddForm ? 'Close' : 'Add'}
           </Button>
         </div>
 
         {/* Add Food Form */}
         {showAddForm && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <form onSubmit={handleAddEntry} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="ios-card p-5 mb-5 ios-animate-scale-in">
+            <h3 className="ios-headline text-gray-900 mb-4">Add Food Entry</h3>
+            <form onSubmit={handleAddEntry} className="space-y-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <Input
                   label="Food Name"
                   value={newEntry.foodName}
@@ -179,114 +178,51 @@ const DietTracker: React.FC = () => {
                   placeholder="e.g., Grilled Chicken"
                   required
                 />
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-[13px] font-medium text-ios-gray1 uppercase tracking-wide mb-1.5 ml-1">
                     Meal Type
                   </label>
-                  <select
+                  <Select
                     value={newEntry.mealType}
-                    onChange={(e) => setNewEntry({ ...newEntry, mealType: e.target.value })}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="snack">Snack</option>
-                  </select>
+                    onChange={(value) => setNewEntry({ ...newEntry, mealType: value })}
+                    className="w-full h-[48px]"
+                    options={[
+                      { value: 'breakfast', label: 'Breakfast' },
+                      { value: 'lunch', label: 'Lunch' },
+                      { value: 'dinner', label: 'Dinner' },
+                      { value: 'snack', label: 'Snack' }
+                    ]}
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <Input
-                  label="Calories"
-                  type="number"
-                  value={newEntry.calories}
-                  onChange={(e) => setNewEntry({ ...newEntry, calories: e.target.value })}
-                  placeholder="250"
-                  required
-                />
-                <Input
-                  label="Protein (g)"
-                  type="number"
-                  value={newEntry.protein}
-                  onChange={(e) => setNewEntry({ ...newEntry, protein: e.target.value })}
-                  placeholder="25"
-                  required
-                />
-                <Input
-                  label="Carbs (g)"
-                  type="number"
-                  value={newEntry.carbs}
-                  onChange={(e) => setNewEntry({ ...newEntry, carbs: e.target.value })}
-                  placeholder="30"
-                  required
-                />
-                <Input
-                  label="Fat (g)"
-                  type="number"
-                  value={newEntry.fat}
-                  onChange={(e) => setNewEntry({ ...newEntry, fat: e.target.value })}
-                  placeholder="10"
-                  required
-                />
-                <Input
-                  label="Quantity"
-                  type="number"
-                  value={newEntry.quantity}
-                  onChange={(e) => setNewEntry({ ...newEntry, quantity: e.target.value })}
-                  placeholder="1"
-                  min="1"
-                  required
-                />
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <Input label="Calories" type="number" value={newEntry.calories}
+                  onChange={(e) => setNewEntry({ ...newEntry, calories: e.target.value })} placeholder="250" required />
+                <Input label="Protein (g)" type="number" value={newEntry.protein}
+                  onChange={(e) => setNewEntry({ ...newEntry, protein: e.target.value })} placeholder="25" required />
+                <Input label="Carbs (g)" type="number" value={newEntry.carbs}
+                  onChange={(e) => setNewEntry({ ...newEntry, carbs: e.target.value })} placeholder="30" required />
+                <Input label="Fat (g)" type="number" value={newEntry.fat}
+                  onChange={(e) => setNewEntry({ ...newEntry, fat: e.target.value })} placeholder="10" required />
+                <Input label="Quantity" type="number" value={newEntry.quantity}
+                  onChange={(e) => setNewEntry({ ...newEntry, quantity: e.target.value })} placeholder="1" min="1" required />
               </div>
 
-              <div className="flex gap-3">
-                <Button type="submit" loading={loading}>
-                  Add Entry
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowAddForm(false)}
-                >
-                  Cancel
-                </Button>
+              <div className="flex gap-2.5 pt-1">
+                <Button type="submit" loading={loading} size="md">Add Entry</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>Cancel</Button>
               </div>
             </form>
           </div>
         )}
 
         {/* Nutrition Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <NutritionCard
-            title="Calories"
-            value={totalNutrition.calories}
-            unit="kcal"
-            color="#3B82F6"
-            target={2000}
-          />
-          <NutritionCard
-            title="Protein"
-            value={totalNutrition.protein}
-            unit="g"
-            color="#10B981"
-            target={150}
-          />
-          <NutritionCard
-            title="Carbs"
-            value={totalNutrition.carbs}
-            unit="g"
-            color="#F59E0B"
-            target={250}
-          />
-          <NutritionCard
-            title="Fat"
-            value={totalNutrition.fat}
-            unit="g"
-            color="#EF4444"
-            target={65}
-          />
+        <div className="grid grid-cols-4 gap-2.5 mb-5">
+          <NutritionPill label="Cal" value={totalNutrition.calories} unit="kcal" color="#007AFF" target={2000} />
+          <NutritionPill label="Protein" value={totalNutrition.protein} unit="g" color="#34C759" target={150} />
+          <NutritionPill label="Carbs" value={totalNutrition.carbs} unit="g" color="#FF9500" target={250} />
+          <NutritionPill label="Fat" value={totalNutrition.fat} unit="g" color="#FF3B30" target={65} />
         </div>
 
         {/* Meals */}

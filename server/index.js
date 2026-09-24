@@ -16,16 +16,16 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://fitai.novacodex.in'] 
-    : ['http://localhost:5173'],
+  origin: process.env.FRONTEND_URL 
+    ? process.env.FRONTEND_URL.split(',') 
+    : (process.env.NODE_ENV === 'production' ? ['https://fitai.novacodex.in'] : ['http://localhost:5173', 'http://192.168.5.135:5173']),
   credentials: true
 }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 100,
+  windowMs: 15 * 60 * 1000,
+  max: 100000, // Increased from 100 to support polling and normal app usage
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use(limiter);
@@ -68,7 +68,7 @@ if (process.env.NODE_ENV === 'production') {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     message: 'Something went wrong!',
     error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
@@ -77,6 +77,6 @@ app.use((err, req, res, next) => {
 // Start the server AFTER routes and middleware are registered
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 Environment: ${process.env.NODE_ENV}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
 });

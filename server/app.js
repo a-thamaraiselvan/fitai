@@ -13,6 +13,7 @@ const gymCalendarRoutes = require('./routes/gym-calendar');
 const aiRoutes = require('./routes/ai');
 const waterRoutes = require('./routes/water');
 const chartsRoutes = require('./routes/charts');
+const integrationRoutes = require('./routes/integration');
 const { initDatabase } = require('./config/database');
 
 
@@ -21,14 +22,15 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['http://localhost:5173', 'http://192.168.5.135:5173'],
   credentials: true
 }));
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 200 : 1000,
+  skip: (req) => req.path === '/api/health'
 });
 app.use(limiter);
 
@@ -37,15 +39,17 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/diet', dietRoutes);
-app.use('/api/workout', workoutRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/gym-calendar', gymCalendarRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/water', waterRoutes);
-app.use('/api/charts', chartsRoutes);
+app.use('/api/v1/Auth', authRoutes);
+app.use('/api/v1/Diet', dietRoutes);
+app.use('/api/v1/Workout', workoutRoutes);
+app.use('/api/v1/Admin', adminRoutes);
+app.use('/api/v1/Dashboard', dashboardRoutes);
+app.use('/api/v1/GymCalendar', gymCalendarRoutes);
+app.use('/api/v1/Ai', aiRoutes);
+app.use('/api/v1/Water', waterRoutes);
+app.use('/api/v1/Charts', chartsRoutes);
+app.use('/api/v1/Integration', integrationRoutes);
+app.use('/uploads', express.static('uploads'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -55,7 +59,7 @@ app.get('/api/health', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     message: 'Something went wrong!',
     error: process.env.NODE_ENV === 'production' ? {} : err.message
   });

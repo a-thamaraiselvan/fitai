@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, Dumbbell } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../UI/Button';
@@ -11,6 +11,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +19,13 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password);
+      const response = await login(email, password);
+      if (response?.data?.mustResetPassword) {
+        localStorage.setItem('fitai_reset_email', email);
+        navigate('/resetPassword');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -27,22 +34,22 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="flex justify-center items-center mb-4">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full">
-              <Dumbbell className="h-8 w-8 text-white" />
-            </div>
+    <div className="min-h-screen flex items-center justify-center px-5 bg-ios-bg">
+      <div className="max-w-sm w-full space-y-6 ios-animate-fade-in">
+        {/* App Icon & Title */}
+        <div className="text-center pt-8">
+          <div className="w-16 h-16 bg-ios-blue rounded-[18px] flex items-center justify-center mx-auto mb-5 shadow-ios-lg">
+            <Dumbbell className="h-8 w-8 text-white" strokeWidth={2.2} />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome to FitAI</h2>
-          <p className="text-gray-600">Sign in to your account</p>
+          <h1 className="ios-large-title text-gray-900 mb-1">Welcome Back</h1>
+          <p className="text-[15px] text-ios-gray1">Sign in to FitAI</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Form Card */}
+        <div className="ios-card p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-ios-red/8 border border-ios-red/20 text-ios-red px-4 py-3 rounded-xl text-[14px]">
                 {error}
               </div>
             )}
@@ -52,7 +59,7 @@ const Login: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="you@example.com"
               icon={Mail}
               required
             />
@@ -70,6 +77,7 @@ const Login: React.FC = () => {
             <Button
               type="submit"
               className="w-full"
+              size="lg"
               loading={loading}
               icon={LogIn}
             >
@@ -78,17 +86,17 @@ const Login: React.FC = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-[15px] text-ios-gray1">
               Don't have an account?{' '}
-              <Link to="/register" className="text-blue-600 hover:text-blue-500 font-medium">
+              <Link to="/register" className="text-ios-blue font-semibold">
                 Sign up
               </Link>
             </p>
           </div>
         </div>
 
-        <div className="text-center text-sm text-gray-500">
-          <p>Design and Developed By <a href='https://thamaraiselvan.novacodex.in/'>Thamaraiselvan</a></p>
+        <div className="text-center text-[12px] text-ios-gray2 pb-6">
+          <p>Design and Developed By <a href='https://thamaraiselvan.novacodex.in/' className="text-ios-blue">Thamaraiselvan</a></p>
         </div>
       </div>
     </div>

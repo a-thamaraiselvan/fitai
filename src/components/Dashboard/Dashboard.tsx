@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Target, Apple, Dumbbell, Calendar, Award } from 'lucide-react';
+import { TrendingUp, Target, Apple, Dumbbell, Calendar, Award, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
@@ -26,7 +26,7 @@ const Dashboard: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.get('/dashboard/stats');
+      const response = await api.get('/Dashboard/GetDashboardStatistics');
       setStats(response.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -35,137 +35,131 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const StatCard: React.FC<{
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    color: string;
-    subtitle?: string;
-  }> = ({ title, value, icon, color, subtitle }) => (
-    <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-          {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
-        </div>
-        <div className={`p-3 rounded-full ${color}`}>
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-20">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.name}! 👋
-          </h1>
-          <p className="text-gray-600">Let's crush your fitness goals today</p>
+    <div className="min-h-screen bg-ios-bg px-4 pt-14 pb-24">
+      <div className="max-w-lg mx-auto ios-animate-fade-in">
+        {/* Large Title Header */}
+        <div className="mb-6">
+          <p className="text-[15px] text-ios-gray1 mb-1">Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}</p>
+          <h1 className="ios-large-title text-gray-900">{user?.name || 'User'}</h1>
         </div>
 
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            title="Today's Calories"
-            value={stats.todayCalories}
-            icon={<Apple className="h-6 w-6 text-white" />}
-            color="bg-gradient-to-r from-green-500 to-emerald-600"
-            subtitle="kcal consumed"
-          />
-          <StatCard
-            title="Weekly Workouts"
-            value={stats.weeklyWorkouts}
-            icon={<Dumbbell className="h-6 w-6 text-white" />}
-            color="bg-gradient-to-r from-blue-500 to-cyan-600"
-            subtitle="this week"
-          />
-          <StatCard
-            title="Current Streak"
-            value={`${stats.currentStreak} days`}
-            icon={<Award className="h-6 w-6 text-white" />}
-            color="bg-gradient-to-r from-orange-500 to-red-600"
-            subtitle="keep it up!"
-          />
-          <StatCard
-            title="Goal Progress"
-            value={`${stats.goalProgress}%`}
-            icon={<Target className="h-6 w-6 text-white" />}
-            color="bg-gradient-to-r from-purple-500 to-pink-600"
-            subtitle="monthly target"
-          />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="ios-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 bg-ios-green/10 rounded-xl flex items-center justify-center">
+                <Apple className="h-[18px] w-[18px] text-ios-green" strokeWidth={2.2} />
+              </div>
+            </div>
+            <p className="text-[26px] font-bold text-gray-900 tracking-tight">{stats.todayCalories}</p>
+            <p className="text-[13px] text-ios-gray1 mt-0.5">kcal consumed</p>
+          </div>
+
+          <div className="ios-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 bg-ios-blue/10 rounded-xl flex items-center justify-center">
+                <Dumbbell className="h-[18px] w-[18px] text-ios-blue" strokeWidth={2.2} />
+              </div>
+            </div>
+            <p className="text-[26px] font-bold text-gray-900 tracking-tight">{stats.weeklyWorkouts}</p>
+            <p className="text-[13px] text-ios-gray1 mt-0.5">workouts this week</p>
+          </div>
+
+          <div className="ios-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 bg-ios-orange/10 rounded-xl flex items-center justify-center">
+                <Award className="h-[18px] w-[18px] text-ios-orange" strokeWidth={2.2} />
+              </div>
+            </div>
+            <p className="text-[26px] font-bold text-gray-900 tracking-tight">{stats.currentStreak}</p>
+            <p className="text-[13px] text-ios-gray1 mt-0.5">day streak</p>
+          </div>
+
+          <div className="ios-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 bg-ios-purple/10 rounded-xl flex items-center justify-center">
+                <Target className="h-[18px] w-[18px] text-ios-purple" strokeWidth={2.2} />
+              </div>
+            </div>
+            <p className="text-[26px] font-bold text-gray-900 tracking-tight">{stats.goalProgress}%</p>
+            <p className="text-[13px] text-ios-gray1 mt-0.5">monthly goal</p>
+          </div>
         </div>
 
         {/* Today's Overview */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Today's Overview</h2>
-            <Calendar className="h-5 w-5 text-gray-500" />
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-              <div className="flex items-center">
-                <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                  <Apple className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Nutrition Goal</p>
-                  <p className="text-sm text-gray-600">{stats.todayCalories}/2000 calories</p>
-                </div>
+        <div className="mb-5">
+          <h2 className="ios-headline text-gray-900 mb-3 ml-1">Today's Overview</h2>
+          <div className="ios-section">
+            {/* Nutrition Row */}
+            <div className="flex items-center px-4 py-3.5">
+              <div className="w-9 h-9 bg-ios-blue/10 rounded-xl flex items-center justify-center mr-3">
+                <Apple className="h-[18px] w-[18px] text-ios-blue" strokeWidth={2.2} />
               </div>
-              <div className="text-right">
-                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-medium text-gray-900">Nutrition Goal</p>
+                <p className="text-[13px] text-ios-gray1">{stats.todayCalories} / 2000 calories</p>
+              </div>
+              <div className="ml-3 w-16">
+                <div className="w-full bg-ios-gray5 rounded-full h-1.5">
                   <div 
-                    className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-500"
+                    className="h-1.5 bg-ios-blue rounded-full transition-all duration-700 ease-out"
                     style={{ width: `${Math.min((stats.todayCalories / 2000) * 100, 100)}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
             </div>
+            
+            <div className="ios-separator" />
 
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-              <div className="flex items-center">
-                <div className="bg-green-100 p-2 rounded-lg mr-3">
-                  <Dumbbell className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Workout Status</p>
-                  <p className="text-sm text-gray-600">
-                    {stats.weeklyWorkouts > 0 ? 'Keep the momentum!' : 'Ready to start?'}
-                  </p>
-                </div>
+            {/* Workout Row */}
+            <div className="flex items-center px-4 py-3.5">
+              <div className="w-9 h-9 bg-ios-green/10 rounded-xl flex items-center justify-center mr-3">
+                <Dumbbell className="h-[18px] w-[18px] text-ios-green" strokeWidth={2.2} />
               </div>
-              <div className="text-right">
-                <span className="text-lg font-bold text-green-600">
-                  {stats.weeklyWorkouts}/5
-                </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-medium text-gray-900">Workout Status</p>
+                <p className="text-[13px] text-ios-gray1">
+                  {stats.weeklyWorkouts > 0 ? 'Keep the momentum!' : 'Ready to start?'}
+                </p>
               </div>
+              <span className="text-[17px] font-bold text-ios-green ml-3">
+                {stats.weeklyWorkouts}/5
+              </span>
             </div>
           </div>
         </div>
 
         {/* AI Recommendations */}
-        <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl shadow-lg p-6 text-white">
-          <div className="flex items-center mb-4">
-            <TrendingUp className="h-6 w-6 mr-2" />
-            <h2 className="text-xl font-bold">AI Recommendations</h2>
-          </div>
-          <div className="space-y-3">
-            <div className="bg-white/20 rounded-xl p-4">
-              <p className="font-semibold mb-1">💪 Workout Suggestion</p>
-              <p className="text-sm opacity-90">
-                Based on your progress, try adding 10 minutes of cardio to boost your endurance.
-              </p>
+        <div className="mb-5">
+          <h2 className="ios-headline text-gray-900 mb-3 ml-1">AI Recommendations</h2>
+          <div className="ios-section">
+            <div className="flex items-start px-4 py-3.5">
+              <div className="w-9 h-9 bg-ios-indigo/10 rounded-xl flex items-center justify-center mr-3 shrink-0 mt-0.5">
+                <Dumbbell className="h-[18px] w-[18px] text-ios-indigo" strokeWidth={2.2} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[15px] font-medium text-gray-900 mb-0.5">Workout Suggestion</p>
+                <p className="text-[13px] text-ios-gray1 leading-relaxed">
+                  Based on your progress, try adding 10 minutes of cardio to boost your endurance.
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-ios-gray3 ml-2 shrink-0 mt-1" />
             </div>
-            <div className="bg-white/20 rounded-xl p-4">
-              <p className="font-semibold mb-1">🥗 Nutrition Tip</p>
-              <p className="text-sm opacity-90">
-                Your protein intake is great! Consider adding more leafy greens for better recovery.
-              </p>
+
+            <div className="ios-separator" />
+
+            <div className="flex items-start px-4 py-3.5">
+              <div className="w-9 h-9 bg-ios-green/10 rounded-xl flex items-center justify-center mr-3 shrink-0 mt-0.5">
+                <Apple className="h-[18px] w-[18px] text-ios-green" strokeWidth={2.2} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[15px] font-medium text-gray-900 mb-0.5">Nutrition Tip</p>
+                <p className="text-[13px] text-ios-gray1 leading-relaxed">
+                  Your protein intake is great! Consider adding more leafy greens for better recovery.
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-ios-gray3 ml-2 shrink-0 mt-1" />
             </div>
           </div>
         </div>

@@ -52,16 +52,11 @@ const MealAnalyzer: React.FC = () => {
 
   const analyzeImage = async () => {
     if (!selectedImage) return;
-
     setAnalyzing(true);
     try {
-      const response = await api.post('/ai/analyze-meal', {
-        image: selectedImage,
-        mealType: mealType
-      });
-
+      const response = await api.post('/Ai/AnalyzeMealImage', { image: selectedImage, mealType });
       setAnalysis(response.data.analysis);
-      toast.success('Meal analyzed successfully! 🍽️');
+      toast.success('Meal analyzed successfully!');
     } catch (error) {
       console.error('Failed to analyze meal:', error);
       toast.error('Failed to analyze meal. Please try again.');
@@ -72,17 +67,11 @@ const MealAnalyzer: React.FC = () => {
 
   const addFoodToDiet = async (food: AnalyzedFood) => {
     try {
-      await api.post('/diet/entries', {
-        foodName: food.name,
-        calories: food.calories,
-        protein: food.protein,
-        carbs: food.carbs,
-        fat: food.fat,
-        quantity: 1,
-        mealType: mealType
+      await api.post('/Diet/AddDietEntry', {
+        foodName: food.name, calories: food.calories, protein: food.protein,
+        carbs: food.carbs, fat: food.fat, quantity: 1, mealType
       });
-
-      toast.success(`${food.name} added to your ${mealType}! ✅`);
+      toast.success(`${food.name} added to your ${mealType}!`);
     } catch (error) {
       console.error('Failed to add food:', error);
       toast.error('Failed to add food to diet tracker');
@@ -91,24 +80,15 @@ const MealAnalyzer: React.FC = () => {
 
   const addAllFoods = async () => {
     if (!analysis) return;
-
     try {
       const promises = analysis.foods.map(food => 
-        api.post('/diet/entries', {
-          foodName: food.name,
-          calories: food.calories,
-          protein: food.protein,
-          carbs: food.carbs,
-          fat: food.fat,
-          quantity: 1,
-          mealType: mealType
+        api.post('/Diet/AddDietEntry', {
+          foodName: food.name, calories: food.calories, protein: food.protein,
+          carbs: food.carbs, fat: food.fat, quantity: 1, mealType
         })
       );
-
       await Promise.all(promises);
-      toast.success(`All foods added to your ${mealType}! 🎉`);
-      
-      // Reset form
+      toast.success(`All foods added to your ${mealType}!`);
       setSelectedImage(null);
       setAnalysis(null);
     } catch (error) {
@@ -123,206 +103,126 @@ const MealAnalyzer: React.FC = () => {
     setMealType(getCurrentMealType());
   };
 
+  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-20">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-ios-bg px-4 pt-14 pb-24">
+      <div className="max-w-lg mx-auto ios-animate-fade-in">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center items-center mb-4">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-full">
-              <Sparkles className="h-8 w-8 text-white" />
-            </div>
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 bg-ios-purple/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="h-7 w-7 text-ios-purple" strokeWidth={2} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Meal Analyzer</h1>
-          <p className="text-gray-600">Upload a photo and let AI analyze your meal's nutrition</p>
+          <h1 className="ios-large-title text-gray-900 mb-1">AI Analyzer</h1>
+          <p className="text-[15px] text-ios-gray1">Upload a photo to analyze nutrition</p>
         </div>
 
-        {/* Meal Type Selection */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Meal Type</h3>
-          <div className="grid grid-cols-4 gap-3">
-            {['breakfast', 'lunch', 'dinner', 'snack'].map((type) => (
+        {/* Meal Type — iOS Segmented Control */}
+        <div className="ios-card p-1.5 mb-5">
+          <div className="flex bg-ios-gray6 rounded-xl p-0.5">
+            {mealTypes.map((type) => (
               <button
                 key={type}
                 onClick={() => setMealType(type)}
-                className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`flex-1 py-2 rounded-[10px] text-[13px] font-semibold transition-all duration-200 capitalize ${
                   mealType === type
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-ios-gray1 hover:text-gray-700'
                 }`}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {type}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Image Upload Section */}
+        {/* Image Upload */}
         {!selectedImage && (
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-            <div className="text-center">
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 hover:border-blue-400 transition-colors duration-300">
-                <div className="flex justify-center space-x-4 mb-6">
-                  <Button
-                    onClick={() => cameraInputRef.current?.click()}
-                    icon={Camera}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600"
-                  >
-                    Take Photo
-                  </Button>
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    icon={Upload}
-                    variant="outline"
-                  >
-                    Upload Image
-                  </Button>
-                </div>
-                <p className="text-gray-500">Take a photo or upload an image of your meal</p>
+          <div className="ios-card p-6 mb-5">
+            <div className="border-2 border-dashed border-ios-gray4 rounded-2xl p-10 text-center">
+              <div className="flex justify-center gap-3 mb-4">
+                <Button onClick={() => cameraInputRef.current?.click()} icon={Camera} size="md">
+                  Camera
+                </Button>
+                <Button onClick={() => fileInputRef.current?.click()} icon={Upload} variant="secondary" size="md">
+                  Upload
+                </Button>
               </div>
+              <p className="text-[14px] text-ios-gray2">Take a photo or upload an image</p>
             </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
           </div>
         )}
 
-        {/* Image Preview & Analysis */}
+        {/* Image Preview */}
         {selectedImage && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Meal Image</h3>
-              <Button
-                onClick={resetAnalysis}
-                variant="ghost"
-                icon={X}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                Clear
-              </Button>
+          <div className="ios-card p-5 mb-5">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="ios-headline text-gray-900">Meal Image</h3>
+              <Button onClick={resetAnalysis} variant="ghost" icon={X} size="sm">Clear</Button>
             </div>
-
-            <div className="mb-6">
-              <img
-                src={selectedImage}
-                alt="Selected meal"
-                className="w-full max-w-md mx-auto rounded-xl shadow-md"
-              />
-            </div>
-
+            <img src={selectedImage} alt="Selected meal" className="w-full rounded-2xl mb-4" />
             {!analysis && (
-              <div className="text-center">
-                <Button
-                  onClick={analyzeImage}
-                  loading={analyzing}
-                  icon={analyzing ? Loader2 : Sparkles}
-                  className="bg-gradient-to-r from-purple-500 to-pink-600"
-                >
-                  {analyzing ? 'Analyzing...' : 'Analyze with AI'}
-                </Button>
-              </div>
+              <Button onClick={analyzeImage} loading={analyzing} icon={analyzing ? Loader2 : Sparkles} className="w-full" size="lg">
+                {analyzing ? 'Analyzing...' : 'Analyze with AI'}
+              </Button>
             )}
           </div>
         )}
 
         {/* Analysis Results */}
         {analysis && (
-          <div className="space-y-6">
-            {/* Summary Card */}
-            <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl shadow-lg p-6 text-white">
-              <h3 className="text-xl font-bold mb-4">Nutrition Summary</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{analysis.totalCalories}</p>
-                  <p className="text-sm opacity-90">Calories</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{analysis.totalProtein}g</p>
-                  <p className="text-sm opacity-90">Protein</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{analysis.totalCarbs}g</p>
-                  <p className="text-sm opacity-90">Carbs</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{analysis.totalFat}g</p>
-                  <p className="text-sm opacity-90">Fat</p>
-                </div>
-              </div>
-              <div className="mt-4 text-center">
-                <Button
-                  onClick={addAllFoods}
-                  variant="outline"
-                  className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                  icon={Plus}
-                >
-                  Add All to {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
-                </Button>
-              </div>
-            </div>
-
-            {/* Individual Foods */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Detected Foods</h3>
-              <div className="space-y-4">
-                {analysis.foods.map((food, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <h4 className="font-semibold text-gray-900 mr-2">{food.name}</h4>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          food.confidence > 0.8 
-                            ? 'bg-green-100 text-green-800' 
-                            : food.confidence > 0.6 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {Math.round(food.confidence * 100)}% confident
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-4 text-sm text-gray-600">
-                        <div>
-                          <p className="font-medium">Calories</p>
-                          <p>{food.calories}</p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Protein</p>
-                          <p>{food.protein}g</p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Carbs</p>
-                          <p>{food.carbs}g</p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Fat</p>
-                          <p>{food.fat}g</p>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => addFoodToDiet(food)}
-                      icon={Plus}
-                      size="sm"
-                      className="ml-4 shrink-0"
-                    >
-                      Add
-                    </Button>
+          <div className="space-y-4">
+            {/* Summary */}
+            <div className="ios-card p-5">
+              <h3 className="ios-headline text-gray-900 mb-4">Nutrition Summary</h3>
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  { label: 'Calories', value: analysis.totalCalories, unit: '' },
+                  { label: 'Protein', value: analysis.totalProtein, unit: 'g' },
+                  { label: 'Carbs', value: analysis.totalCarbs, unit: 'g' },
+                  { label: 'Fat', value: analysis.totalFat, unit: 'g' },
+                ].map(item => (
+                  <div key={item.label} className="text-center p-2.5 bg-ios-gray6 rounded-xl">
+                    <p className="text-[18px] font-bold text-gray-900">{item.value}{item.unit}</p>
+                    <p className="text-[11px] text-ios-gray1 uppercase tracking-wider mt-0.5">{item.label}</p>
                   </div>
                 ))}
               </div>
+              <Button onClick={addAllFoods} variant="secondary" icon={Plus} className="w-full mt-4">
+                Add All to {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+              </Button>
+            </div>
+
+            {/* Individual Foods */}
+            <div className="ios-section">
+              <h3 className="ios-headline text-gray-900 px-4 pt-4 pb-2">Detected Foods</h3>
+              {analysis.foods.map((food, index) => (
+                <React.Fragment key={index}>
+                  {index > 0 && <div className="ios-separator" />}
+                  <div className="flex items-center px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-[15px] font-medium text-gray-900">{food.name}</h4>
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          food.confidence > 0.8 ? 'bg-ios-green/10 text-ios-green' 
+                          : food.confidence > 0.6 ? 'bg-ios-orange/10 text-ios-orange' 
+                          : 'bg-ios-red/10 text-ios-red'
+                        }`}>
+                          {Math.round(food.confidence * 100)}%
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-ios-gray2">
+                        {food.calories} kcal · P:{food.protein}g · C:{food.carbs}g · F:{food.fat}g
+                      </p>
+                    </div>
+                    <Button onClick={() => addFoodToDiet(food)} icon={Plus} size="sm" variant="secondary">
+                      Add
+                    </Button>
+                  </div>
+                </React.Fragment>
+              ))}
             </div>
           </div>
         )}

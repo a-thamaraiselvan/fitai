@@ -9,7 +9,7 @@ const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Analyze meal image
-router.post('/analyze-meal', authenticateToken, async (req, res) => {
+router.post('/AnalyzeMealImage', authenticateToken, async (req, res) => {
   try {
     const { image, mealType } = req.body;
 
@@ -20,7 +20,7 @@ router.post('/analyze-meal', authenticateToken, async (req, res) => {
     // Remove data URL prefix
     const base64Image = image.replace(/^data:image\/[a-z]+;base64,/, '');
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.7-flash' });
 
     const prompt = `
       Analyze this food image and provide detailed nutritional information. 
@@ -96,10 +96,17 @@ router.post('/analyze-meal', authenticateToken, async (req, res) => {
 });
 
 // Generate AI notifications
-router.get('/notifications', authenticateToken, async (req, res) => {
+router.get('/GetAiNotifications', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const db = getConnection();
+
+    const [userRows] = await db.execute('SELECT notifications_enabled FROM users WHERE id = ?', [userId]);
+    const notificationsEnabled = userRows[0]?.notifications_enabled;
+
+    if (!notificationsEnabled) {
+      return res.json([]);
+    }
 
     // Get user's recent activity
     const today = new Date().toISOString().split('T')[0];
@@ -135,9 +142,9 @@ router.get('/notifications', authenticateToken, async (req, res) => {
     // Water notification
     if (waterIntake < 1000) {
       const messages = [
-        "Hey broo! 💧 You're drinking less water today. Stay hydrated, thangalesh!",
-        "Kuding broo! 🚰 Your body needs more water. Drink up for better performance!",
-        "Water intake low da! 💦 Keep sipping throughout the day, thangalesh!"
+        "Hey broo! You're drinking less water today. Stay hydrated, thangalesh!",
+        "Kuding broo! Your body needs more water. Drink up for better performance!",
+        "Water intake low da! Keep sipping throughout the day, thangalesh!"
       ];
       
       notifications.push({
@@ -153,9 +160,9 @@ router.get('/notifications', authenticateToken, async (req, res) => {
     // Workout motivation
     if (workoutCount === 0) {
       const messages = [
-        "No workout today? 💪 Come on broo, let's crush those goals! Thangalesh br!",
-        "Missing the gym today? 🏋️‍♂️ Even 15 minutes counts, kuding!",
-        "Your muscles are waiting! 💪 Time to show them some love, thangalesh!"
+        "No workout today? Come on broo, let's crush those goals! Thangalesh br!",
+        "Missing the gym today? Even 15 minutes counts, kuding!",
+        "Your muscles are waiting! Time to show them some love, thangalesh!"
       ];
       
       notifications.push({
@@ -171,9 +178,9 @@ router.get('/notifications', authenticateToken, async (req, res) => {
     // Diet notification
     if (caloriesIntake < 800) {
       const messages = [
-        "Eating too little today? 🍽️ Fuel your body properly, thangalesh br!",
-        "Low calorie intake detected! 🥗 Your body needs energy to perform, kuding!",
-        "Don't skip meals broo! 🍎 Proper nutrition is key to your fitness journey!"
+        "Eating too little today? Fuel your body properly, thangalesh br!",
+        "Low calorie intake detected! Your body needs energy to perform, kuding!",
+        "Don't skip meals broo! Proper nutrition is key to your fitness journey!"
       ];
       
       notifications.push({
@@ -188,10 +195,10 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 
     // Motivational messages
     const motivationalMessages = [
-      "You're doing great! 🌟 Keep pushing forward, thangalesh br!",
-      "Every small step counts! 👣 Proud of your progress, kuding!",
-      "Consistency is key! 🔑 You've got this, broo!",
-      "Your future self will thank you! 🙏 Keep going, thangalesh!"
+      "You're doing great! Keep pushing forward, thangalesh br!",
+      "Every small step counts! Proud of your progress, kuding!",
+      "Consistency is key! You've got this, broo!",
+      "Your future self will thank you! Keep going, thangalesh!"
     ];
 
     if (Math.random() > 0.7) { // 30% chance for motivational message
@@ -231,7 +238,7 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 });
 
 // Mark notification as read
-router.put('/notifications/:id/read', authenticateToken, async (req, res) => {
+router.put('/MarkNotificationAsRead/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -250,7 +257,7 @@ router.put('/notifications/:id/read', authenticateToken, async (req, res) => {
 });
 
 // Delete notification
-router.delete('/notifications/:id', authenticateToken, async (req, res) => {
+router.delete('/DeleteNotification/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;

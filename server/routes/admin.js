@@ -5,11 +5,11 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all users (admin only)
-router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/GetAllUsers', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const db = getConnection();
     const [rows] = await db.execute(
-      'SELECT id, email, name, height, weight, fitness_goals, is_approved, created_at FROM users WHERE role = "user" ORDER BY created_at DESC'
+      'SELECT id, email, name, height, weight, fitness_goals, is_approved, is_suspended, created_at FROM users WHERE role = "user" ORDER BY created_at DESC'
     );
 
     const users = rows.map(user => ({
@@ -20,6 +20,7 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
       weight: user.weight,
       fitnessGoals: user.fitness_goals,
       isApproved: user.is_approved,
+      isSuspended: user.is_suspended,
       registrationDate: user.created_at
     }));
 
@@ -31,7 +32,7 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Approve user
-router.put('/users/:id/approve', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/ApproveUser/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
 
@@ -53,7 +54,7 @@ router.put('/users/:id/approve', authenticateToken, requireAdmin, async (req, re
 });
 
 // Reject user
-router.put('/users/:id/reject', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/RejectUser/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
 
@@ -74,8 +75,84 @@ router.put('/users/:id/reject', authenticateToken, requireAdmin, async (req, res
   }
 });
 
+// Suspend/Unsuspend user
+router.put('/SuspendUser/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { suspend } = req.body; // true to suspend, false to unsuspend
+
+    const db = getConnection();
+    const [result] = await db.execute(
+      'UPDATE users SET is_suspended = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND role = "user"',
+      [suspend, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: `User ${suspend ? 'suspended' : 'unsuspended'} successfully` });
+  } catch (error) {
+    console.error('Error suspending user:', error);
+    res.status(500).json({ message: 'Failed to suspend user' });
+  }
+});
+
+// Reset Password
+const bcrypt = require('bcryptjs');
+router.put('/ResetUserPassword/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required' });
+    }
+
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    const db = getConnection();
+    const [result] = await db.execute(
+      'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND role = "user"',
+      [hashedPassword, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
+});
+
+// Delete user
+router.delete('/DeleteUser/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const db = getConnection();
+    const [result] = await db.execute(
+      'DELETE FROM users WHERE id = ? AND role = "user"',
+      [userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Failed to delete user' });
+  }
+});
+
 // Get admin dashboard stats
-router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/GetAdminDashboardStats', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const db = getConnection();
     

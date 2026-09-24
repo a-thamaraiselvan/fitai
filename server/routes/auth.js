@@ -43,7 +43,7 @@ const upload = multer({
 });
 
 // Register
-router.post('/register', async (req, res) => {
+router.post('/RegisterUser', async (req, res) => {
   try {
     const { email, password, name, height, weight, fitnessGoals } = req.body;
 
@@ -87,7 +87,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/LoginUser', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -99,7 +99,7 @@ router.post('/login', async (req, res) => {
 
     // Get user
     const [rows] = await db.execute(
-      'SELECT id, email, password, name, profile_picture, height, weight, fitness_goals, role, is_approved FROM users WHERE email = ?',
+      'SELECT id, email, password, name, profile_picture, height, weight, fitness_goals, role, is_approved, is_suspended, notifications_enabled, organization_id, gym_member_id, must_reset_password FROM users WHERE email = ?',
       [email]
     );
 
@@ -120,10 +120,45 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: 'Account pending approval. Please wait for admin approval.' });
     }
 
+    // Check if user is suspended
+    if (user.is_suspended) {
+      return res.status(403).json({ message: 'Account has been suspended. Please contact the administrator.' });
+    }
+
+    // Gym Membership & License validation for organization users
+    if (user.organization_id || user.gym_member_id) {
+      try {
+        const gymApiUrl = process.env.GYM_MGMT_API_URL || 'http://localhost:5000/api/v1';
+        const gymRes = await fetch(`${gymApiUrl}/fitai/CheckMemberStatus`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-integration-key': process.env.FITAI_INTEGRATION_SECRET
+          },
+          body: JSON.stringify({
+            email: user.email,
+            organizationId: user.organization_id,
+            gymMemberId: user.gym_member_id
+          })
+        });
+
+        if (gymRes.ok) {
+          const gymData = await gymRes.json();
+          if (gymData.success && !gymData.allowed) {
+            return res.status(403).json({
+              message: gymData.message || 'Your gym membership has expired or is inactive. Please renew your membership to access FitAI.'
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Gym membership check failed on login:', err.message);
+      }
+    }
+
     // Generate token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -138,7 +173,10 @@ router.post('/login', async (req, res) => {
         weight: user.weight,
         fitnessGoals: user.fitness_goals,
         role: user.role,
-        isApproved: user.is_approved
+        isApproved: user.is_approved,
+        notificationsEnabled: !!user.notifications_enabled,
+        organizationId: user.organization_id,
+        mustResetPassword: !!user.must_reset_password
       }
     });
 
@@ -149,26 +187,21 @@ router.post('/login', async (req, res) => {
 });
 
 // Get current user
-router.get('/me', authenticateToken, (req, res) => {
+router.get('/GetCurrentUser', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });
 
 // Update profile
-router.put('/profile', authenticateToken, async (req, res) => {
+router.put('/UpdateUserProfile', authenticateToken, async (req, res) => {
   try {
-    console.log('PUT /profile called');
-    console.log('req.user:', req.user);
-    console.log('req.body:', req.body);
-
-    const { name, height, weight, fitnessGoals } = req.body;
+    const { name, height, weight, fitnessGoals, notificationsEnabled } = req.body;
     const userId = req.user.id;
 
     const db = getConnection();
-    console.log('DB connection:', !!db);
 
     // Get current user values to prevent null overwrites
     const [currentRows] = await db.execute(
-      'SELECT name, height, weight, fitness_goals FROM users WHERE id = ?',
+      'SELECT name, height, weight, fitness_goals, notifications_enabled FROM users WHERE id = ?',
       [userId]
     );
     if (!currentRows || currentRows.length === 0) {
@@ -178,21 +211,21 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     // Update user with provided values or keep existing ones
     await db.execute(
-      'UPDATE users SET name = ?, height = ?, weight = ?, fitness_goals = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE users SET name = ?, height = ?, weight = ?, fitness_goals = ?, notifications_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [
         name ?? currentUser.name,
         height ?? currentUser.height,
         weight ?? currentUser.weight,
         fitnessGoals ?? currentUser.fitness_goals,
+        notificationsEnabled ?? currentUser.notifications_enabled,
         userId
       ]
     );
 
     const [rows] = await db.execute(
-      'SELECT id, email, name, profile_picture, height, weight, fitness_goals, role, is_approved FROM users WHERE id = ?',
+      'SELECT id, email, name, profile_picture, height, weight, fitness_goals, role, is_approved, notifications_enabled FROM users WHERE id = ?',
       [userId]
     );
-    console.log('DB rows:', rows);
 
     if (!rows || rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
@@ -209,19 +242,20 @@ router.put('/profile', authenticateToken, async (req, res) => {
         weight: user.weight,
         fitnessGoals: user.fitness_goals,
         role: user.role,
-        isApproved: user.is_approved
+        isApproved: user.is_approved,
+        notificationsEnabled: !!user.notifications_enabled
       }
     });
 
   } catch (error) {
     console.error('Profile update error:', error);
-    res.status(500).json({ message: 'Profile update failed', details: error.message });
+    res.status(500).json({ message: 'Profile update failed' });
   }
 });
 
 
 // Upload profile picture
-router.post('/upload-profile-picture', authenticateToken, upload.single('profilePicture'), async (req, res) => {
+router.post('/UploadProfilePicture', authenticateToken, upload.single('profilePicture'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
@@ -252,6 +286,38 @@ router.post('/upload-profile-picture', authenticateToken, upload.single('profile
   } catch (error) {
     console.error('Profile picture upload error:', error);
     res.status(500).json({ message: 'Profile picture upload failed' });
+  }
+});
+
+// Reset First Password
+router.post('/ResetFirstPassword', async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: 'Email and new password are required' });
+    }
+
+    const db = getConnection();
+    
+    // Hash new password
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    
+    // Update password and must_reset_password
+    const [result] = await db.execute(
+      'UPDATE users SET password = ?, must_reset_password = FALSE WHERE email = ?',
+      [hashedPassword, email]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset first password error:', error);
+    res.status(500).json({ message: 'Failed to reset password' });
   }
 });
 

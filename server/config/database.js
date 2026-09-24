@@ -61,10 +61,64 @@ const createTables = async (connection) => {
         fitness_goals TEXT,
         role ENUM('user', 'admin') DEFAULT 'user',
         is_approved BOOLEAN DEFAULT FALSE,
+        is_suspended BOOLEAN DEFAULT FALSE,
+        notifications_enabled BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
+
+    // Migration: Add notifications_enabled column to existing users table
+    try {
+      await connection.execute('ALTER TABLE users ADD COLUMN notifications_enabled BOOLEAN DEFAULT TRUE');
+      console.log('Added notifications_enabled column to users table');
+    } catch (error) {
+      if (error.errno !== 1060) console.error('Migration error:', error);
+    }
+
+    // Migration: Add is_suspended column to existing users table
+    try {
+      await connection.execute('ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE');
+      console.log('Added is_suspended column to users table');
+    } catch (error) {
+      if (error.errno !== 1060) console.error('Migration error:', error);
+    }
+
+    // Migration: Add organization_id column
+    try {
+      await connection.execute('ALTER TABLE users ADD COLUMN organization_id VARCHAR(255) NOT NULL DEFAULT \'\'');
+      console.log('Added organization_id column to users table');
+    } catch (error) {
+      if (error.errno !== 1060) console.error('Migration error:', error);
+    }
+
+    // Migration: Add must_reset_password column
+    try {
+      await connection.execute('ALTER TABLE users ADD COLUMN must_reset_password BOOLEAN DEFAULT FALSE');
+      console.log('Added must_reset_password column to users table');
+    } catch (error) {
+      if (error.errno !== 1060) console.error('Migration error:', error);
+    }
+
+    // Migration: Add gym_member_id column
+    try {
+      await connection.execute('ALTER TABLE users ADD COLUMN gym_member_id VARCHAR(255) DEFAULT NULL');
+      console.log('Added gym_member_id column to users table');
+    } catch (error) {
+      if (error.errno !== 1060) console.error('Migration error:', error);
+    }
+
+    // Add indexes
+    try {
+      await connection.execute('CREATE INDEX idx_users_org ON users(organization_id)');
+    } catch (error) {
+      if (error.errno !== 1061) console.error('Index error:', error);
+    }
+    try {
+      await connection.execute('CREATE INDEX idx_users_gym_member ON users(gym_member_id)');
+    } catch (error) {
+      if (error.errno !== 1061) console.error('Index error:', error);
+    }
 
     // Diet entries table
     await connection.execute(`

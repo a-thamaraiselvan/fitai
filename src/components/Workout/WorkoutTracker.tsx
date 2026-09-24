@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Clock, Dumbbell, Target, Play, Pause, RotateCcw } from 'lucide-react';
+import { Plus, Clock, Dumbbell, Target, Play, Pause, Square, X } from 'lucide-react';
+import { Select } from 'antd';
+import { toast } from 'react-hot-toast';
 import Button from '../UI/Button';
 import Input from '../UI/Input';
 import api from '../../services/api';
@@ -29,6 +31,7 @@ const WorkoutTracker: React.FC = () => {
   const [activeSession, setActiveSession] = useState<WorkoutSession | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [totalSessionTime, setTotalSessionTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [newEntry, setNewEntry] = useState({
     exerciseName: '',
@@ -39,61 +42,51 @@ const WorkoutTracker: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchTodaysWorkouts();
-  }, []);
+  useEffect(() => { fetchTodaysWorkouts(); }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerRunning) {
-      interval = setInterval(() => {
-        setTimer(prev => prev + 1);
-      }, 1000);
-    }
+    let interval: ReturnType<typeof setInterval>;
+    if (isTimerRunning) { interval = setInterval(() => setTimer(prev => prev + 1), 1000); }
     return () => clearInterval(interval);
   }, [isTimerRunning]);
 
   const fetchTodaysWorkouts = async () => {
     try {
-      const response = await api.get('/workout/entries/today');
-      setWorkoutEntries(response.data);
+      const response = await api.get('/Workout/GetTodayWorkoutEntries');
+      const formattedEntries = response.data.map((entry: any) => ({
+        ...entry,
+        exerciseName: entry.exercise_name || entry.exerciseName,
+        workoutType: entry.workout_type || entry.workoutType
+      }));
+      setWorkoutEntries(formattedEntries);
+      
+      const todayStr = new Date().toISOString().split('T')[0];
+      const sessionsResponse = await api.get(`/Workout/GetWorkoutSessions?startDate=${todayStr}&endDate=${todayStr}`);
+      const totalTime = sessionsResponse.data.reduce((acc: number, session: any) => acc + (session.duration || 0), 0);
+      setTotalSessionTime(totalTime);
     } catch (error) {
       console.error('Failed to fetch workout entries:', error);
     }
   };
 
   const startWorkoutSession = () => {
-    const session: WorkoutSession = {
-      name: `Workout ${new Date().toLocaleDateString()}`,
-      exercises: [],
-      startTime: new Date(),
-      duration: 0,
-      isActive: true,
-    };
-    setActiveSession(session);
+    setActiveSession({ name: `Workout ${new Date().toLocaleDateString()}`, exercises: [], startTime: new Date(), duration: 0, isActive: true });
     setIsTimerRunning(true);
     setTimer(0);
   };
 
-  const pauseResumeTimer = () => {
-    setIsTimerRunning(!isTimerRunning);
-  };
+  const pauseResumeTimer = () => { setIsTimerRunning(!isTimerRunning); };
 
   const endWorkoutSession = async () => {
     if (activeSession) {
       try {
-        const sessionData = {
-          ...activeSession,
-          duration: timer,
-          isActive: false,
-        };
-        await api.post('/workout/sessions', sessionData);
-        setActiveSession(null);
-        setIsTimerRunning(false);
-        setTimer(0);
+        await api.post('/Workout/SaveWorkoutSession', { ...activeSession, duration: timer, isActive: false });
+        setActiveSession(null); setIsTimerRunning(false); setTimer(0);
         await fetchTodaysWorkouts();
+        toast.success('Workout session saved successfully!');
       } catch (error) {
         console.error('Failed to save workout session:', error);
+        toast.error('Failed to save workout session');
       }
     }
   };
@@ -101,36 +94,17 @@ const WorkoutTracker: React.FC = () => {
   const addExerciseToSession = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const exerciseData = {
-        ...newEntry,
-        sets: parseInt(newEntry.sets),
-        reps: parseInt(newEntry.reps),
-        weight: parseInt(newEntry.weight),
-        duration: 0, // Can be updated later for timed exercises
-      };
-
-      const response = await api.post('/workout/exercises', exerciseData);
-      
-      if (activeSession) {
-        setActiveSession({
-          ...activeSession,
-          exercises: [...activeSession.exercises, response.data],
-        });
-      }
-
-      setNewEntry({
-        exerciseName: '',
-        sets: '3',
-        reps: '10',
-        weight: '0',
-        workoutType: 'strength',
-      });
+      const exerciseData = { ...newEntry, sets: parseInt(newEntry.sets), reps: parseInt(newEntry.reps), weight: parseInt(newEntry.weight), duration: 0 };
+      const response = await api.post('/Workout/AddWorkoutExercise', exerciseData);
+      if (activeSession) { setActiveSession({ ...activeSession, exercises: [...activeSession.exercises, response.data] }); }
+      setNewEntry({ exerciseName: '', sets: '3', reps: '10', weight: '0', workoutType: 'strength' });
       setShowAddForm(false);
       await fetchTodaysWorkouts();
+      toast.success('Exercise added successfully!');
     } catch (error) {
       console.error('Failed to add exercise:', error);
+      toast.error('Failed to add exercise');
     } finally {
       setLoading(false);
     }
@@ -143,215 +117,132 @@ const WorkoutTracker: React.FC = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const WorkoutTimer: React.FC = () => (
-    <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl shadow-lg p-6 text-white mb-6">
-      <div className="text-center">
-        <h3 className="text-lg font-semibold mb-2">Workout Session</h3>
-        <div className="text-4xl font-bold mb-4">{formatTime(timer)}</div>
-        <div className="flex justify-center gap-3">
-          <Button
-            onClick={pauseResumeTimer}
-            variant="outline"
-            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-            icon={isTimerRunning ? Pause : Play}
-          >
-            {isTimerRunning ? 'Pause' : 'Resume'}
-          </Button>
-          <Button
-            onClick={endWorkoutSession}
-            variant="secondary"
-            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-          >
-            End Session
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const ExerciseCard: React.FC<{ exercise: WorkoutEntry }> = ({ exercise }) => (
-    <div className="bg-gray-50 rounded-xl p-4 border-l-4 border-blue-500">
-      <div className="flex justify-between items-start mb-2">
-        <h4 className="font-semibold text-gray-900">{exercise.exerciseName}</h4>
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-lg text-xs font-medium capitalize">
-          {exercise.workoutType}
-        </span>
-      </div>
-      <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
-        <div>
-          <p className="font-medium">Sets</p>
-          <p>{exercise.sets}</p>
-        </div>
-        <div>
-          <p className="font-medium">Reps</p>
-          <p>{exercise.reps}</p>
-        </div>
-        <div>
-          <p className="font-medium">Weight</p>
-          <p>{exercise.weight} kg</p>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pb-20">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-ios-bg px-4 pt-14 pb-24">
+      <div className="max-w-lg mx-auto ios-animate-fade-in">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-start mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Workout Tracker</h1>
-            <p className="text-gray-600">Track your exercises and progress</p>
+            <h1 className="ios-large-title text-gray-900">Workout</h1>
+            <p className="text-[15px] text-ios-gray1 mt-1">Track your exercises</p>
           </div>
           <div className="flex gap-2">
             {!activeSession ? (
-              <Button 
-                onClick={startWorkoutSession}
-                icon={Play}
-                className="shrink-0"
-              >
-                Start Workout
-              </Button>
+              <Button onClick={startWorkoutSession} icon={Play} size="sm">Start</Button>
             ) : (
-              <Button 
-                onClick={() => setShowAddForm(!showAddForm)}
-                icon={Plus}
-                variant="secondary"
-                className="shrink-0"
-              >
-                Add Exercise
+              <Button onClick={() => setShowAddForm(!showAddForm)} icon={showAddForm ? X : Plus} size="sm" variant="secondary">
+                {showAddForm ? 'Close' : 'Add'}
               </Button>
             )}
           </div>
         </div>
 
         {/* Workout Timer */}
-        {activeSession && <WorkoutTimer />}
+        {activeSession && (
+          <div className="ios-card p-6 mb-5 text-center">
+            <p className="text-[13px] text-ios-gray1 uppercase tracking-wider mb-2 font-medium">Session Timer</p>
+            <p className="text-[48px] font-light text-gray-900 tracking-tight font-sf-pro tabular-nums mb-4">
+              {formatTime(timer)}
+            </p>
+            <div className="flex justify-center gap-3">
+              <Button onClick={pauseResumeTimer} variant="secondary" icon={isTimerRunning ? Pause : Play} size="md">
+                {isTimerRunning ? 'Pause' : 'Resume'}
+              </Button>
+              <Button onClick={endWorkoutSession} variant="destructive" icon={Square} size="md">
+                End
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Add Exercise Form */}
         {showAddForm && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <form onSubmit={addExerciseToSession} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Exercise Name"
-                  value={newEntry.exerciseName}
-                  onChange={(e) => setNewEntry({ ...newEntry, exerciseName: e.target.value })}
-                  placeholder="e.g., Bench Press"
-                  required
-                />
-
+          <div className="ios-card p-5 mb-5 ios-animate-scale-in">
+            <h3 className="ios-headline text-gray-900 mb-4">Add Exercise</h3>
+            <form onSubmit={addExerciseToSession} className="space-y-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <Input label="Exercise Name" value={newEntry.exerciseName}
+                  onChange={(e) => setNewEntry({ ...newEntry, exerciseName: e.target.value })} placeholder="e.g., Bench Press" required />
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Workout Type
-                  </label>
-                  <select
-                    value={newEntry.workoutType}
-                    onChange={(e) => setNewEntry({ ...newEntry, workoutType: e.target.value })}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="strength">Strength</option>
-                    <option value="cardio">Cardio</option>
-                    <option value="flexibility">Flexibility</option>
-                    <option value="sports">Sports</option>
-                  </select>
+                  <label className="block text-[13px] font-medium text-ios-gray1 uppercase tracking-wide mb-1.5 ml-1">Type</label>
+                  <Select value={newEntry.workoutType} onChange={(value) => setNewEntry({ ...newEntry, workoutType: value })}
+                    className="w-full h-[48px]"
+                    options={[
+                      { value: 'strength', label: 'Strength' },
+                      { value: 'cardio', label: 'Cardio' },
+                      { value: 'flexibility', label: 'Flexibility' },
+                      { value: 'sports', label: 'Sports' }
+                    ]}
+                  />
                 </div>
               </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <Input
-                  label="Sets"
-                  type="number"
-                  value={newEntry.sets}
-                  onChange={(e) => setNewEntry({ ...newEntry, sets: e.target.value })}
-                  placeholder="3"
-                  min="1"
-                  required
-                />
-                <Input
-                  label="Reps"
-                  type="number"
-                  value={newEntry.reps}
-                  onChange={(e) => setNewEntry({ ...newEntry, reps: e.target.value })}
-                  placeholder="10"
-                  min="1"
-                  required
-                />
-                <Input
-                  label="Weight (kg)"
-                  type="number"
-                  value={newEntry.weight}
-                  onChange={(e) => setNewEntry({ ...newEntry, weight: e.target.value })}
-                  placeholder="50"
-                  min="0"
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <Input label="Sets" type="number" value={newEntry.sets}
+                  onChange={(e) => setNewEntry({ ...newEntry, sets: e.target.value })} placeholder="3" min="1" required />
+                <Input label="Reps" type="number" value={newEntry.reps}
+                  onChange={(e) => setNewEntry({ ...newEntry, reps: e.target.value })} placeholder="10" min="1" required />
+                <Input label="Weight (kg)" type="number" value={newEntry.weight}
+                  onChange={(e) => setNewEntry({ ...newEntry, weight: e.target.value })} placeholder="50" min="0" />
               </div>
-
-              <div className="flex gap-3">
-                <Button type="submit" loading={loading}>
-                  Add Exercise
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowAddForm(false)}
-                >
-                  Cancel
-                </Button>
+              <div className="flex gap-2.5 pt-1">
+                <Button type="submit" loading={loading}>Add Exercise</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>Cancel</Button>
               </div>
             </form>
           </div>
         )}
 
-        {/* Today's Workouts */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Today's Exercises</h2>
+        {/* Today's Exercises */}
+        <div className="mb-5">
+          <h2 className="ios-headline text-gray-900 mb-3 ml-1">Today's Exercises</h2>
           {workoutEntries.length > 0 ? (
-            <div className="space-y-4">
-              {workoutEntries.map((exercise) => (
-                <ExerciseCard key={exercise.id} exercise={exercise} />
+            <div className="ios-section">
+              {workoutEntries.map((exercise, index) => (
+                <React.Fragment key={exercise.id}>
+                  {index > 0 && <div className="ios-separator" />}
+                  <div className="px-4 py-3.5">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-[15px] font-medium text-gray-900">{exercise.exerciseName}</h4>
+                      <span className="text-[12px] font-medium text-ios-blue bg-ios-blue/8 px-2.5 py-0.5 rounded-full capitalize">
+                        {exercise.workoutType}
+                      </span>
+                    </div>
+                    <div className="flex gap-6 text-[13px] text-ios-gray1">
+                      <span>{exercise.sets} sets</span>
+                      <span>{exercise.reps} reps</span>
+                      <span>{exercise.weight} kg</span>
+                    </div>
+                  </div>
+                </React.Fragment>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <Dumbbell className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No exercises logged today</p>
-              <Button 
-                onClick={() => !activeSession ? startWorkoutSession() : setShowAddForm(true)}
-                icon={Plus}
-              >
-                {!activeSession ? 'Start Your First Workout' : 'Add Exercise'}
+            <div className="ios-card py-12 text-center">
+              <Dumbbell className="h-12 w-12 text-ios-gray3 mx-auto mb-3" strokeWidth={1.5} />
+              <p className="text-[15px] text-ios-gray2 mb-4">No exercises logged today</p>
+              <Button onClick={() => !activeSession ? startWorkoutSession() : setShowAddForm(true)} icon={Plus} size="md">
+                {!activeSession ? 'Start Workout' : 'Add Exercise'}
               </Button>
             </div>
           )}
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-            <Clock className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">{formatTime(timer)}</p>
-            <p className="text-sm text-gray-600">Session Time</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-            <Dumbbell className="h-6 w-6 text-green-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">{workoutEntries.length}</p>
-            <p className="text-sm text-gray-600">Exercises</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-            <Target className="h-6 w-6 text-orange-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">
-              {workoutEntries.reduce((total, ex) => total + (ex.sets * ex.reps), 0)}
-            </p>
-            <p className="text-sm text-gray-600">Total Reps</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-            <RotateCcw className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">
-              {Math.round(workoutEntries.reduce((total, ex) => total + ex.weight, 0))}
-            </p>
-            <p className="text-sm text-gray-600">Total Weight</p>
-          </div>
+        <div className="grid grid-cols-4 gap-2.5">
+          {[
+            { icon: Clock, color: 'text-ios-blue', bg: 'bg-ios-blue/10', value: formatTime(totalSessionTime + timer), label: 'Time' },
+            { icon: Dumbbell, color: 'text-ios-green', bg: 'bg-ios-green/10', value: workoutEntries.length, label: 'Exercises' },
+            { icon: Target, color: 'text-ios-orange', bg: 'bg-ios-orange/10', value: workoutEntries.reduce((t, e) => t + e.sets * e.reps, 0), label: 'Reps' },
+            { icon: Dumbbell, color: 'text-ios-purple', bg: 'bg-ios-purple/10', value: `${Math.round(workoutEntries.reduce((t, e) => t + e.weight, 0))}`, label: 'Weight' },
+          ].map((stat, i) => (
+            <div key={i} className="ios-card p-3 text-center">
+              <div className={`w-8 h-8 ${stat.bg} rounded-lg flex items-center justify-center mx-auto mb-2`}>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} strokeWidth={2.2} />
+              </div>
+              <p className="text-[16px] font-bold text-gray-900">{stat.value}</p>
+              <p className="text-[11px] text-ios-gray2 mt-0.5">{stat.label}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

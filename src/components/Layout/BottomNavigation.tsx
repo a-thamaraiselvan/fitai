@@ -16,30 +16,30 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, setActiv
 
   const navItems = [
     { id: 'dashboard', label: 'Home', icon: Home, path: '/dashboard' },
-    { 
-      id: 'diet', 
-      label: 'Diet', 
-      icon: Apple, 
+    {
+      id: 'diet',
+      label: 'Diet',
+      icon: Apple,
       path: '/diet',
       subItems: [
         { id: 'diet-tracker', label: 'Diet Tracker', icon: Apple, path: '/diet' },
         { id: 'meal-analyzer', label: 'AI Analyzer', icon: Camera, path: '/meal-analyzer' },
       ]
     },
-    { 
-      id: 'workout', 
-      label: 'Workout', 
-      icon: Dumbbell, 
+    {
+      id: 'workout',
+      label: 'Workout',
+      icon: Dumbbell,
       path: '/workout',
       subItems: [
         { id: 'workout-tracker', label: 'Workouts', icon: Dumbbell, path: '/workout' },
         { id: 'gym-calendar', label: 'Gym Calendar', icon: Calendar, path: '/gym-calendar' },
       ]
     },
-    { 
-      id: 'more', 
-      label: 'More', 
-      icon: TrendingUp, 
+    {
+      id: 'more',
+      label: 'More',
+      icon: TrendingUp,
       path: '/charts',
       subItems: [
         { id: 'water', label: 'Water', icon: Droplets, path: '/water' },
@@ -47,8 +47,8 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, setActiv
       ]
     },
     { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
-    ...(user?.role === 'admin' 
-      ? [{ id: 'admin', label: 'Admin', icon: Shield, path: '/admin' }] 
+    ...(user?.role === 'admin'
+      ? [{ id: 'admin', label: 'Admin', icon: Shield, path: '/admin' }]
       : []
     ),
   ];
@@ -69,80 +69,61 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, setActiv
     <>
       {/* Sub Menu */}
       {showSubMenu && (
-        <div className="fixed bottom-20 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
-          <div className="flex justify-around items-center py-2">
-            {navItems.find(item => item.id === showSubMenu)?.subItems?.map((subItem) => {
-              const SubIconComponent = subItem.icon;
-              const isActive = currentPath === subItem.path;
-              
-              return (
-                <button
-                  key={subItem.id}
-                  onClick={() => {
-                    setActiveTab(subItem.id);
-                    navigate(subItem.path);
-                    setShowSubMenu(null);
-                  }}
-                  className={`flex flex-col items-center justify-center p-3 min-w-0 flex-1 transition-all duration-200 ${
-                    isActive
-                      ? 'text-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <div className={`p-2 rounded-xl transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-blue-100' 
-                      : 'hover:bg-gray-100'
-                  }`}>
-                    <SubIconComponent className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                  </div>
-                  <span className={`text-xs mt-1 font-medium ${
-                    isActive ? 'text-blue-600' : 'text-gray-500'
-                  }`}>
-                    {subItem.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        <div className="fixed bottom-[84px] left-1/2 -translate-x-1/2 bg-white/40 backdrop-blur-lg border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.1)] rounded-full z-40 p-1.5 flex items-center space-x-1 overflow-hidden transition-all duration-300">
+          {navItems.find(item => item.id === showSubMenu)?.subItems?.map((subItem) => {
+            const SubIconComponent = subItem.icon;
+            const isActive = currentPath === subItem.path;
 
-      {/* Main Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-        <div className="flex justify-around items-center py-2">
-          {navItems.map((item) => {
-            const IconComponent = item.icon;
-            const isActive = item.subItems 
-              ? item.subItems.some(sub => currentPath === sub.path)
-              : currentPath === item.path;
-            
             return (
               <button
-                key={item.id}
-                onClick={() => handleNavigation(item)}
-                className={`flex flex-col items-center justify-center p-3 min-w-0 flex-1 transition-all duration-200 ${
-                  isActive
-                    ? 'text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                } ${showSubMenu === item.id ? 'bg-blue-50' : ''}`}
+                key={subItem.id}
+                onClick={() => {
+                  setActiveTab(subItem.id);
+                  navigate(subItem.path);
+                  setShowSubMenu(null);
+                }}
+                className={`group flex items-center justify-center transition-all duration-500 rounded-full h-10 ${isActive
+                    ? 'bg-white/70 text-purple-600 shadow-sm border border-white/60 px-4'
+                    : 'bg-transparent text-gray-600 hover:bg-white/50 hover:text-gray-900 px-3'
+                  }`}
               >
-                <div className={`p-2 rounded-xl transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-blue-100' 
-                    : 'hover:bg-gray-100'
-                }`}>
-                  <IconComponent className={`h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                </div>
-                <span className={`text-xs mt-1 font-medium ${
-                  isActive ? 'text-blue-600' : 'text-gray-500'
-                }`}>
-                  {item.label}
+                <SubIconComponent className="h-4 w-4 shrink-0" strokeWidth={isActive ? 2.5 : 2} />
+                <span className={`text-xs font-medium whitespace-nowrap overflow-hidden transition-all duration-500 ${isActive ? 'max-w-[100px] ml-2 opacity-100' : 'max-w-0 opacity-0 ml-0'
+                  }`}>
+                  {subItem.label}
                 </span>
               </button>
             );
           })}
         </div>
+      )}
+
+      {/* Main Navigation */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/40 backdrop-blur-lg border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.1)] rounded-full z-50 p-1.5 flex items-center space-x-1">
+        {navItems.map((item) => {
+          const IconComponent = item.icon;
+          const isActive = item.subItems
+            ? item.subItems.some(sub => currentPath === sub.path)
+            : currentPath === item.path;
+          const isMenuOpen = showSubMenu === item.id;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNavigation(item)}
+              className={`group flex items-center justify-center transition-all duration-500 rounded-full h-12 ${isActive || isMenuOpen
+                  ? 'bg-white/70 text-purple-600 shadow-md border border-white/60 px-5'
+                  : 'bg-transparent text-gray-600 hover:bg-white/50 hover:text-gray-900 px-4'
+                }`}
+            >
+              <IconComponent className="h-5 w-5 shrink-0" strokeWidth={isActive || isMenuOpen ? 2.5 : 2} />
+              <span className={`text-[13px] font-medium whitespace-nowrap overflow-hidden transition-all duration-500 ${isActive ? 'max-w-[120px] ml-2.5 opacity-100' : 'max-w-0 opacity-0 ml-0'
+                }`}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </>
   );

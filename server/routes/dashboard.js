@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Get dashboard statistics
-router.get('/stats', authenticateToken, async (req, res) => {
+router.get('/GetDashboardStatistics', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const today = new Date().toISOString().split('T')[0];
@@ -62,7 +62,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 });
 
 // Get recent activity
-router.get('/activity', authenticateToken, async (req, res) => {
+router.get('/GetRecentActivity', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const limit = req.query.limit || 10;

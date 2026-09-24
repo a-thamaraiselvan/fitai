@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Get today's water intake
-router.get('/today', authenticateToken, async (req, res) => {
+router.get('/GetTodayWaterIntake', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const today = new Date().toISOString().split('T')[0];
@@ -38,7 +38,7 @@ router.get('/today', authenticateToken, async (req, res) => {
 });
 
 // Add water entry
-router.post('/add', authenticateToken, async (req, res) => {
+router.post('/AddWaterEntry', authenticateToken, async (req, res) => {
   try {
     const { amount } = req.body;
     const userId = req.user.id;
@@ -62,7 +62,7 @@ router.post('/add', authenticateToken, async (req, res) => {
 });
 
 // Delete water entry
-router.delete('/entries/:id', authenticateToken, async (req, res) => {
+router.delete('/DeleteWaterEntry/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -85,7 +85,7 @@ router.delete('/entries/:id', authenticateToken, async (req, res) => {
 });
 
 // Get weekly water stats
-router.get('/weekly', authenticateToken, async (req, res) => {
+router.get('/GetWeeklyWaterStats', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     
