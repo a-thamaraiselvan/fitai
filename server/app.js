@@ -19,10 +19,15 @@ const { initDatabase } = require('./config/database');
 
 const app = express();
 
+// Trust proxy for Nginx reverse proxy
+app.set('trust proxy', 1);
+
 // Security middleware
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
-  origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['http://localhost:5173', 'http://192.168.5.135:5173'],
+  origin: process.env.FRONTEND_URL 
+    ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) 
+    : ['https://fitai.novacodex.in', 'http://localhost:5173', 'http://192.168.5.135:5173'],
   credentials: true
 }));
 
